@@ -7,6 +7,9 @@ on:
       plugin-id:
         required: true
         type: string
+      test-vault:
+        required: true
+        type: string
 jobs:
   test:
     timeout-minutes: 60
@@ -14,16 +17,19 @@ jobs:
     steps:
     - name: Copy plugin into test vault
       run: |
-        cp build/* ./tests/e2e/test-vault/.obsidian/plugins/${{ inputs.plugin-id }}
+        mkdir -p ${{inputs.test-vault}}/.obsidian/plugins/${{ inputs.plugin-id }}
+        cp build/* ${{inputs.test-vault}}/.obsidian/plugins/${{ inputs.plugin-id }}
     - name: Install dependencies 
+      run: |
+        yarn install
+        yarn playwright install-deps
+    - name: Install Obsidian
       run: |
         [ -z $(command -v sudo) ] && apt-get update && apt-get install sudo
         sudo apt-get update
         sudo apt-get install -y jq xdg-utils xvfb
         curled=$(curl -L https://github.com/obsidianmd/obsidian-releases/raw/refs/heads/master/desktop-releases.json | jq .latestVersion | sed s/\"//g)
         curl -Lo obsidian.deb "https://github.com/obsidianmd/obsidian-releases/releases/download/v$curled/obsidian_${curled}_amd64.deb"
-        yarn install
-        yarn playwright install-deps
         sudo dpkg -i ./obsidian.deb
     - name: Run Tests
       run: |
